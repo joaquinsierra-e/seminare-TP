@@ -1,4 +1,4 @@
-# Seminare S.R.L. — Prototipo Java (TP3)
+# Seminare S.R.L. — Sistema de gestión comercial en Java (versión final, TP4)
 
 Sistema de gestión comercial para Seminare S.R.L. (distribuidora Nidera, Río Cuarto).
 Seminario de Práctica de Informática — UES21. Proceso Unificado de Desarrollo (PUD).
@@ -12,13 +12,12 @@ Casos de uso implementados: **CU01** Registrar Preventa · **CU02** Gestionar St
 
 ## Base de datos
 1. Ejecutar `database/script_seminare.sql` (en MySQL Workbench o `mysql -u root -p < database/script_seminare.sql`). Recrea `seminare_db`.
-2. Por defecto se conecta a `localhost:3306/seminare_db` con usuario `root` / contraseña `root`.
-   Se puede cambiar con las variables de entorno `SEMINARE_DB_URL`, `SEMINARE_DB_USER` y `SEMINARE_DB_PASS`.
+2. Los datos de conexión se leen de `config/db.properties` (clave=valor). Copiar `config/db.properties.ejemplo`
+   como `db.properties` y completar usuario y clave. `ejecutar.bat` lo crea solo la primera vez.
+   `db.properties` está en `.gitignore`: la contraseña no se publica en GitHub.
+3. **Importante:** el script empieza con `DROP DATABASE`. Ejecutarlo de nuevo borra todo lo cargado desde el programa.
 
-## Ejecución rápida (Windows)
-Doble clic en `ejecutar.bat` (o `.\ejecutar.bat` en la terminal): descarga el driver JDBC si falta, compila y ejecuta. Acepta `--memoria`.
-
-## Compilar y ejecutar a mano (desde la raíz del proyecto)
+## Compilar y ejecutar (desde la raíz del proyecto)
 Windows (PowerShell / cmd):
 ```
 javac -encoding UTF-8 -cp "lib/*" -d out (Get-ChildItem -Recurse src -Filter *.java).FullName
@@ -32,14 +31,19 @@ java -cp "out:lib/*" src.Main
 Modo demostración **sin MySQL** (datos en memoria): agregar el argumento `--memoria`.
 Si MySQL no responde, el programa ofrece pasar a ese modo.
 
-## Arquitectura en 3 capas
-| Capa | Paquete | Contenido |
+Prueba repetible contra MySQL: `demo.bat` corre el programa con las respuestas de `datos/demo_entrada.txt`
+y guarda la pantalla completa en `capturas/salida_demo.txt`.
+
+## Patrón de diseño: MVC (con DAO y Fábrica)
+| Parte | Paquete | Contenido |
 |---|---|---|
-| Presentación | `src.Main` | Menú por consola (clase Boundary) |
-| Negocio | `src.controlador` | `GestorPreventa`, `GestorInventario`, `GestorDespacho` |
-| Persistencia | `src.dao` | Interfaces `I*DAO` + implementación JDBC (`PreparedStatement`, transacciones) y `src.dao.memoria` |
-| Dominio | `src.modelo` | Entidades y reglas de negocio |
+| Vista | `src.vista` | `VistaBase` (abstracta) y `VistaPrincipal`, `VistaPreventa`, `VistaInventario`, `VistaDespacho` |
+| Controlador | `src.controlador` | `GestorPreventa`, `GestorInventario`, `GestorDespacho` |
+| Modelo | `src.modelo` + `src.dao` | Entidades con sus reglas + acceso a MySQL por interfaces `I*DAO` (JDBC) |
+| Archivos | `src.archivos` | `ConfiguracionDB` (lee `config/db.properties`), `ArchivoRemito` (remitos .txt), `ArchivoListaPrecios` (CSV) |
 | Soporte | `src.excepciones`, `src.util` | Excepciones propias, ordenación/búsqueda, lectura de consola |
+
+`src.Main` solo arma las piezas: crea los DAO con `FabricaDAO`, se los pasa a los controladores y los controladores a las vistas.
 
 ## Requisitos de la consigna y dónde se cumplen
 | Requisito | Dónde |
@@ -48,18 +52,24 @@ Si MySQL no responde, el programa ofrece pasar a ese modo.
 | Herencia | `Persona → Productor`; `HibridoNidera → HibridoMaiz / HibridoSoja / HibridoGirasol` |
 | Abstracción | Clases abstractas `Persona` y `HibridoNidera`; interfaces `IOrdenDAO`, `ILoteDAO`, … |
 | Polimorfismo | `precioUnitarioPara()` / `getPresentacion()` según el cultivo; DAO JDBC o en memoria intercambiables |
-| Excepciones | `SeminareException` → `StockInsuficiente`, `DatosInvalidos`, `Persistencia`; captura centralizada en `Main.ejecutar()` |
-| Menú, condicionales y bucles | `Main` (menús con `do/while` + `switch`), `Consola` (reintento de entradas) |
+| Excepciones | `SeminareException` → `StockInsuficiente`, `DatosInvalidos`, `Persistencia`, `Archivo`; captura centralizada en `VistaBase.ejecutar()` |
+| Menú, condicionales y bucles | `VistaBase.mostrar()` (`do/while`), vistas (`switch`), `Consola` (reintento de entradas) |
+| Arreglos + ArrayList | Opciones de menú `String[]`; `CULTIVOS` y matriz `int[][]` del resumen de stock; filas del CSV como `String[]` dentro de un `ArrayList<String[]>`; `File.list()` |
+| Archivos | Lectura de `config/db.properties`; escritura y lectura de remitos; exportación e importación de la lista de precios (CSV) |
 | Constructores | Todas las entidades validan en el constructor |
 | Estructuras de datos | `List`, **pila** (`Deque`: cancelar última preventa), **cola** (`Queue`: cola de despacho FIFO) |
 | Ordenación y búsqueda | `util.Algoritmos`: inserción, selección, búsqueda binaria y lineal |
 | Transacciones | `OrdenDAO`: reserva, cancelación y despacho con `commit/rollback` y control de stock atómico |
 
-## Casos de prueba (continuación de AP2)
+## Casos de prueba
 - **CP-01** Reservar 20 bolsas de un lote con 100 → orden `RESERVADO`, stock 80.
 - **CP-02** Reservar 150 sobre un lote con 80/100 → `StockInsuficienteException`, no se guarda nada.
 - **CP-03** CUIT duplicado o con dígito verificador inválido → se rechaza el alta del productor.
 - **CP-04** Cancelar la última preventa → las bolsas vuelven al lote.
 - **CP-05** Despacho con patente inválida → se rechaza y la orden sigue `RESERVADO`; con patente válida → remito `R-0001-########`.
+- **CP-09** Resumen de stock por cultivo → la suma de bolsas coincide con `SELECT SUM(bolsas_disponibles)`.
+- **CP-10** Importar CSV con filas válidas e inválidas → se actualizan las válidas en MySQL y se informa cada fila rechazada.
+- **CP-11** Importar un archivo que no existe → `[ARCHIVO]` y el programa sigue.
+- **CP-12** Despachar → se crea `remitos/R-0001-########.txt` y se puede volver a leer desde el menú.
 
 Todos los datos de ejemplo (CUIT, lotes, precios) son ficticios.

@@ -18,7 +18,7 @@ public abstract class HibridoNidera {
     private final String codigoVariedad;
     private final String cultivo;
     private final String tratamiento;
-    private final BigDecimal precioUsd;
+    private BigDecimal precioUsd; // no es final: se actualiza al importar la lista de precios
 
     protected HibridoNidera(int id, String codigoVariedad, String cultivo, String tratamiento, BigDecimal precioUsd)
             throws DatosInvalidosException {
@@ -86,6 +86,14 @@ public abstract class HibridoNidera {
 
     public BigDecimal getPrecioUsd() {
         return precioUsd;
+    }
+
+    /** Cambia el precio de lista (TP4: actualización desde archivo CSV). Rechaza valores nulos o no positivos. */
+    public void actualizarPrecio(BigDecimal nuevoPrecioUsd) throws DatosInvalidosException {
+        if (nuevoPrecioUsd == null || nuevoPrecioUsd.signum() <= 0) {
+            throw new DatosInvalidosException("El precio en USD de " + codigoVariedad + " debe ser mayor a cero.");
+        }
+        this.precioUsd = nuevoPrecioUsd.setScale(2, RoundingMode.HALF_UP);
     }
 
     @Override

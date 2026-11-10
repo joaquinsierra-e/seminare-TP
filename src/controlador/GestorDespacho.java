@@ -1,11 +1,13 @@
 package src.controlador;
 
+import java.io.File;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
+import src.archivos.ArchivoRemito;
 import src.dao.IOrdenDAO;
 import src.excepciones.DatosInvalidosException;
 import src.excepciones.SeminareException;
@@ -15,13 +17,14 @@ import src.modelo.OrdenPreventa;
 import src.util.Algoritmos;
 
 /**
- * Clase de CONTROL del CU03 "Despacho y Logística". Las órdenes RESERVADAS esperan en una COLA (FIFO):
- * se despachan en el orden en que se registraron.
+ * CONTROLADOR (MVC) del CU03 "Despacho y Logística". Las órdenes RESERVADAS esperan en una COLA (FIFO):
+ * se despachan en el orden en que se registraron. Cada despacho genera su remito en un archivo de texto.
  */
 public class GestorDespacho {
 
     private final IOrdenDAO ordenDAO;
     private final Queue<OrdenPreventa> cola = new LinkedList<>();
+    private final ArchivoRemito archivoRemito = new ArchivoRemito();
 
     public GestorDespacho(IOrdenDAO ordenDAO) {
         this.ordenDAO = ordenDAO;
@@ -56,5 +59,18 @@ public class GestorDespacho {
         ordenDAO.registrarDespacho(despacho);
         cola.poll();
         return despacho;
+    }
+
+    /** Guarda el remito del despacho en remitos/<numero>.txt. Se llama después de registrar el despacho en MySQL. */
+    public File generarRemito(OrdenDespacho despacho) throws SeminareException {
+        return archivoRemito.guardar(despacho);
+    }
+
+    public String[] listarRemitos() {
+        return archivoRemito.listar();
+    }
+
+    public List<String> leerRemito(String nombreArchivo) throws SeminareException {
+        return archivoRemito.leer(nombreArchivo);
     }
 }

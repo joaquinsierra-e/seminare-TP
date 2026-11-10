@@ -18,7 +18,7 @@ import src.modelo.OrdenPreventa;
 import src.modelo.Productor;
 
 /**
- * Clase de CONTROL del CU01 "Registrar Preventa": aplica las reglas de negocio
+ * CONTROLADOR (MVC) del CU01 "Registrar Preventa": aplica las reglas de negocio
  * (productor existente, stock suficiente por lote, cotización en dólares) y coordina a los DAO.
  * Mantiene una PILA (LIFO) con las preventas de la sesión para poder cancelar la última.
  */

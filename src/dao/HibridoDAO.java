@@ -1,5 +1,6 @@
 package src.dao;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -46,6 +47,32 @@ public class HibridoDAO implements IHibridoDAO {
             }
         } catch (SQLException e) {
             throw ConexionDB.traducir(e, "Error al buscar el híbrido");
+        }
+    }
+
+    @Override
+    public HibridoNidera buscarPorCodigo(String codigoVariedad) throws SeminareException {
+        String sql = "SELECT hibrido_id, codigo_variedad, cultivo, tratamiento, precio_usd "
+                + "FROM hibridos_nidera WHERE UPPER(codigo_variedad) = UPPER(?)";
+        try (Connection c = ConexionDB.obtener(); PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, codigoVariedad.trim());
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? mapear(rs) : null;
+            }
+        } catch (SQLException e) {
+            throw ConexionDB.traducir(e, "Error al buscar el híbrido por código");
+        }
+    }
+
+    @Override
+    public boolean actualizarPrecio(int id, BigDecimal precioUsd) throws SeminareException {
+        String sql = "UPDATE hibridos_nidera SET precio_usd = ? WHERE hibrido_id = ?";
+        try (Connection c = ConexionDB.obtener(); PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setBigDecimal(1, precioUsd);
+            ps.setInt(2, id);
+            return ps.executeUpdate() == 1;
+        } catch (SQLException e) {
+            throw ConexionDB.traducir(e, "Error al actualizar el precio del híbrido #" + id);
         }
     }
 }

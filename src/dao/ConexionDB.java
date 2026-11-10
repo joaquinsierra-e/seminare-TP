@@ -5,33 +5,31 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 
+import src.archivos.ConfiguracionDB;
 import src.excepciones.DatosInvalidosException;
 import src.excepciones.PersistenciaException;
 import src.excepciones.SeminareException;
 
 /**
- * Punto único de acceso a MySQL. Los valores por defecto coinciden con el entorno local del proyecto
- * y pueden sobrescribirse con las variables de entorno SEMINARE_DB_URL, SEMINARE_DB_USER y SEMINARE_DB_PASS.
+ * Punto único de acceso a MySQL (JDBC): DriverManager entrega la Connection con los datos de
+ * config/db.properties. Cada DAO pide una conexión, la usa y la cierra con try-with-resources.
  */
 public final class ConexionDB {
 
-    private static final String URL = env("SEMINARE_DB_URL",
-            "jdbc:mysql://localhost:3306/seminare_db?useSSL=false&allowPublicKeyRetrieval=true"
-                    + "&serverTimezone=America/Argentina/Cordoba&characterEncoding=UTF-8");
-    private static final String USER = env("SEMINARE_DB_USER", "root");
-    private static final String PASS = env("SEMINARE_DB_PASS", "root");
+    /** Datos de conexión leídos una sola vez del archivo config/db.properties (ver ConfiguracionDB). */
+    private static final ConfiguracionDB CONFIG = ConfiguracionDB.cargar();
 
     private ConexionDB() {
     }
 
-    private static String env(String clave, String porDefecto) {
-        String valor = System.getenv(clave);
-        return (valor == null || valor.isBlank()) ? porDefecto : valor;
+    /** Indica de dónde se tomó la configuración (se muestra al iniciar el programa). */
+    public static String origenConfiguracion() {
+        return CONFIG.getOrigen();
     }
 
     public static Connection obtener() throws PersistenciaException {
         try {
-            return DriverManager.getConnection(URL, USER, PASS);
+            return DriverManager.getConnection(CONFIG.getUrl(), CONFIG.getUsuario(), CONFIG.getClave());
         } catch (SQLException e) {
             throw new PersistenciaException("No se pudo conectar a MySQL (" + e.getMessage() + ")", e);
         }

@@ -1,0 +1,5 @@
+# Copiar este archivo como db.properties y completar con los datos de su MySQL local.
+# db.properties NO se sube a GitHub (está en .gitignore) para no publicar la contraseña.
+db.url=jdbc:mysql://localhost:3306/seminare_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Argentina/Cordoba&characterEncoding=UTF-8
+db.usuario=root
+db.clave=root

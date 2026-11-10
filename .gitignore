@@ -3,3 +3,8 @@ lib/*.jar
 *.class
 .idea/
 *.iml
+# archivos generados al usar el programa y datos locales
+config/db.properties
+remitos/
+exportaciones/
+capturas/

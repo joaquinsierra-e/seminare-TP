@@ -17,9 +17,16 @@ if not exist "%JAR%" (
   )
 )
 
+if not exist config\db.properties (
+  echo Creando config\db.properties a partir del ejemplo ^(revise usuario y clave de MySQL^)...
+  copy config\db.properties.ejemplo config\db.properties >nul
+)
+
 echo Compilando...
 if exist out rmdir /s /q out
-javac -encoding UTF-8 -cp "lib/*" -d out src\Main.java src\modelo\*.java src\controlador\*.java src\dao\*.java src\dao\memoria\*.java src\excepciones\*.java src\util\*.java
+dir /s /b src\*.java > fuentes.txt
+javac -encoding UTF-8 -cp "lib/*" -d out @fuentes.txt
+del fuentes.txt
 if errorlevel 1 (
   echo Error de compilacion.
   pause
